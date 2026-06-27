@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '版本号（如 v0.1.0，需要与 private repo 的 tauri.conf.json 一致）'
+        description: '版本号（如 v0.1.0，需与源码版本一致）'
         required: true
         type: string
       draft:
@@ -21,7 +21,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SOURCE_REPO: gclm/gclm-agent
+  # 源码仓库地址（存储在 repo variable 中，避免硬编码泄露）
+  SOURCE_REPO: ${{ vars.SOURCE_REPO }}
   CARGO_TERM_COLOR: always
 
 jobs:
