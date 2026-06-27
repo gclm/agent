@@ -408,23 +408,21 @@ jobs:
           prerelease: false
           generate_release_notes: true
           body: ${{ steps.body.outputs.body }}
-          files: |
-            artifacts/macos-x64/**/*.dmg
-            artifacts/macos-x64/**/*.app.tar.gz
-            artifacts/macos-x64/**/*.sig
-            artifacts/macos-arm/**/*.dmg
-            artifacts/macos-arm/**/*.app.tar.gz
-            artifacts/macos-arm/**/*.sig
-            artifacts/windows/**/*.exe
-            artifacts/windows/**/*.sig
-            artifacts/linux-x64/**/*.deb
-            artifacts/linux-x64/**/*.AppImage
-            artifacts/linux-x64/**/*.sig
-            artifacts/linux-arm64/**/*.deb
-            artifacts/linux-arm64/**/*.AppImage
-            artifacts/linux-arm64/**/*.sig
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release assets（find 递归，绕过 softprops glob 对子目录 .sig 匹配失败）
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mapfile -t assets < <(find artifacts -type f \( \
+            -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \
+            -o -name "*-setup.exe" -o -name "*.exe.sig" \
+            -o -name "*.deb" -o -name "*.AppImage" -o -name "*.AppImage.sig" \))
+          echo "将上传 ${#assets[@]} 个 asset:"
+          printf '  %s\n' "${assets[@]}"
+          gh release upload "$VERSION" "${assets[@]}" --clobber
 
       - name: Generate latest.json
         run: |
@@ -432,17 +430,22 @@ jobs:
           BASE_URL="https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}"
 
           # 动态取各平台 updater 资产的实际文件名 + 签名（命名随 productName/版本/架构变化，
-          # 不能写死）。macOS updater 用 .app.tar.gz（不是 dmg）。
-          macos_x64_pkg=$(basename $(ls artifacts/macos-x64/*.app.tar.gz 2>/dev/null | head -1) 2>/dev/null || echo "")
-          macos_x64_sig=$(cat artifacts/macos-x64/*.app.tar.gz.sig 2>/dev/null | head -1 || echo "")
-          macos_arm_pkg=$(basename $(ls artifacts/macos-arm/*.app.tar.gz 2>/dev/null | head -1) 2>/dev/null || echo "")
-          macos_arm_sig=$(cat artifacts/macos-arm/*.app.tar.gz.sig 2>/dev/null | head -1 || echo "")
-          win_pkg=$(basename $(ls artifacts/windows/*-setup.exe 2>/dev/null | head -1) 2>/dev/null || echo "")
-          win_sig=$(cat artifacts/windows/*.exe.sig 2>/dev/null | head -1 || echo "")
-          linux_x64_pkg=$(basename $(ls artifacts/linux-x64/*.AppImage 2>/dev/null | head -1) 2>/dev/null || echo "")
-          linux_x64_sig=$(cat artifacts/linux-x64/*.AppImage.sig 2>/dev/null | head -1 || echo "")
-          linux_arm_pkg=$(basename $(ls artifacts/linux-arm64/*.AppImage 2>/dev/null | head -1) 2>/dev/null || echo "")
-          linux_arm_sig=$(cat artifacts/linux-arm64/*.AppImage.sig 2>/dev/null | head -1 || echo "")
+          # 不能写死）。macOS updater 用 .app.tar.gz（不是 dmg）；签名 = .sig 文件首行。
+          # 用 find 递归（artifact 内产物在 macos/、nsis/、appimage/ 等子目录，
+          # ls 的非递归 glob 匹配不到）。
+          pkg_name() { local f; f=$(find "$1" -name "$2" 2>/dev/null | head -1); [[ -f "$f" ]] && basename "$f" || echo ""; }
+          sig_of()   { local f; f=$(find "$1" -name "$2" 2>/dev/null | head -1); [[ -f "$f" ]] && head -1 "$f" || echo ""; }
+
+          macos_x64_pkg=$(pkg_name artifacts/macos-x64 "*.app.tar.gz")
+          macos_x64_sig=$(sig_of   artifacts/macos-x64 "*.app.tar.gz.sig")
+          macos_arm_pkg=$(pkg_name artifacts/macos-arm "*.app.tar.gz")
+          macos_arm_sig=$(sig_of   artifacts/macos-arm "*.app.tar.gz.sig")
+          win_pkg=$(pkg_name artifacts/windows "*-setup.exe")
+          win_sig=$(sig_of   artifacts/windows "*-setup.exe.sig")
+          linux_x64_pkg=$(pkg_name artifacts/linux-x64 "*.AppImage")
+          linux_x64_sig=$(sig_of   artifacts/linux-x64 "*.AppImage.sig")
+          linux_arm_pkg=$(pkg_name artifacts/linux-arm64 "*.AppImage")
+          linux_arm_sig=$(sig_of   artifacts/linux-arm64 "*.AppImage.sig")
 
           cat > latest.json <<EOF
           {
