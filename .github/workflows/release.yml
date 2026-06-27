@@ -369,9 +369,11 @@ jobs:
           ref: ${{ steps.version.outputs.version }}
           token: ${{ secrets.PAT_REPO_ACCESS }}
           fetch-depth: 0          # generate-changelog 需要 git log 历史 + tags
+          path: source            # checkout 到子目录，避免清空已 download 的 artifacts/
 
       - name: Generate release body & update CHANGELOG
         id: body
+        working-directory: source
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
@@ -383,6 +385,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Commit CHANGELOG.md back to source
+        working-directory: source
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
