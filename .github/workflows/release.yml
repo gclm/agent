@@ -124,8 +124,8 @@ jobs:
         with:
           name: macos-x64
           path: |
-            desktop/src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
-            desktop/src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.sig
+            target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+            target/x86_64-apple-darwin/release/bundle/dmg/*.sig
 
   # ───────────────────────────────────────────
   # macOS ARM (Apple Silicon)
@@ -184,8 +184,8 @@ jobs:
         with:
           name: macos-arm
           path: |
-            desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
-            desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.sig
+            target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            target/aarch64-apple-darwin/release/bundle/dmg/*.sig
 
   # ────────────────────────────────────────────
   # Windows x64
@@ -243,16 +243,28 @@ jobs:
         with:
           name: windows
           path: |
-            desktop/src-tauri/target/release/bundle/nsis/*.exe
-            desktop/src-tauri/target/release/bundle/nsis/*.sig
+            target/release/bundle/nsis/*.exe
+            target/release/bundle/nsis/*.sig
 
   # ────────────────────────────────────────────
-  # Linux x64 (deb + AppImage)
+  # Linux x64 + ARM64 (deb + AppImage)
+  # 两架构都用原生 runner（ubuntu-22.04 / ubuntu-22.04-arm）native 编译，
+  # bundle 都在 target/release/bundle/，靠 artifact 名区分架构。
   # ────────────────────────────────────────────
   build-linux:
-    name: Linux x64
+    name: Linux ${{ matrix.arch }}
     needs: preflight
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-22.04
+            artifact: linux-x64
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+            artifact: linux-arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
@@ -303,11 +315,11 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: linux
+          name: ${{ matrix.artifact }}
           path: |
-            desktop/src-tauri/target/release/bundle/deb/*.deb
-            desktop/src-tauri/target/release/bundle/appimage/*.AppImage
-            desktop/src-tauri/target/release/bundle/appimage/*.sig
+            target/release/bundle/deb/*.deb
+            target/release/bundle/appimage/*.AppImage
+            target/release/bundle/appimage/*.sig
 
   # ────────────────────────────────────────────
   # Create Release + latest.json
@@ -320,28 +332,34 @@ jobs:
       contents: write
     steps:
       - name: Download macOS x64 artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v7
         with:
           name: macos-x64
           path: artifacts/macos-x64
 
       - name: Download macOS ARM artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v7
         with:
           name: macos-arm
           path: artifacts/macos-arm
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v7
         with:
           name: windows
           path: artifacts/windows
 
-      - name: Download Linux artifacts
-        uses: actions/download-artifact@v8
+      - name: Download Linux x64 artifacts
+        uses: actions/download-artifact@v7
         with:
-          name: linux
-          path: artifacts/linux
+          name: linux-x64
+          path: artifacts/linux-x64
+
+      - name: Download Linux ARM64 artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: linux-arm64
+          path: artifacts/linux-arm64
 
       - name: Get version
         id: version
@@ -365,9 +383,12 @@ jobs:
             artifacts/macos-arm/**/*.sig
             artifacts/windows/**/*.exe
             artifacts/windows/**/*.sig
-            artifacts/linux/**/*.deb
-            artifacts/linux/**/*.AppImage
-            artifacts/linux/**/*.sig
+            artifacts/linux-x64/**/*.deb
+            artifacts/linux-x64/**/*.AppImage
+            artifacts/linux-x64/**/*.sig
+            artifacts/linux-arm64/**/*.deb
+            artifacts/linux-arm64/**/*.AppImage
+            artifacts/linux-arm64/**/*.sig
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -380,9 +401,11 @@ jobs:
           MACOS_X64_SIG=$(cat artifacts/macos-x64/*.sig 2>/dev/null | head -1 || echo "")
           MACOS_ARM_SIG=$(cat artifacts/macos-arm/*.sig 2>/dev/null | head -1 || echo "")
           WINDOWS_SIG=$(cat artifacts/windows/*.sig 2>/dev/null | head -1 || echo "")
-          # Linux: 动态取 AppImage 实际文件名（命名随 productName/版本变化），避免 URL 写死
-          LINUX_APPIMAGE=$(basename $(ls artifacts/linux/*.AppImage 2>/dev/null | head -1) 2>/dev/null || echo "")
-          LINUX_SIG=$(cat artifacts/linux/*.sig 2>/dev/null | head -1 || echo "")
+          # Linux 两架构：动态取 AppImage 实际文件名（命名含 amd64/aarch64）
+          LINUX_X64_APPIMAGE=$(basename $(ls artifacts/linux-x64/*.AppImage 2>/dev/null | head -1) 2>/dev/null || echo "")
+          LINUX_X64_SIG=$(cat artifacts/linux-x64/*.sig 2>/dev/null | head -1 || echo "")
+          LINUX_ARM64_APPIMAGE=$(basename $(ls artifacts/linux-arm64/*.AppImage 2>/dev/null | head -1) 2>/dev/null || echo "")
+          LINUX_ARM64_SIG=$(cat artifacts/linux-arm64/*.sig 2>/dev/null | head -1 || echo "")
 
           cat > latest.json <<EOF
           {
@@ -403,8 +426,12 @@ jobs:
                 "url": "$BASE_URL/Gclm-Agent-$VERSION-x64-setup.exe"
               },
               "linux-x86_64": {
-                "signature": "$LINUX_SIG",
-                "url": "$BASE_URL/$LINUX_APPIMAGE"
+                "signature": "$LINUX_X64_SIG",
+                "url": "$BASE_URL/$LINUX_X64_APPIMAGE"
+              },
+              "linux-aarch64": {
+                "signature": "$LINUX_ARM64_SIG",
+                "url": "$BASE_URL/$LINUX_ARM64_APPIMAGE"
               }
             }
           }
