@@ -370,6 +370,24 @@ jobs:
           draft: ${{ github.event.inputs.draft != 'false' }}
           prerelease: false
           generate_release_notes: true
+          body: |
+            ## 首个测试版本（v0.0.1）
+
+            基于 Tauri 2 + Rust 的桌面 AI Agent 客户端。
+
+            ### 下载
+            - **macOS**: Apple Silicon / Intel (.dmg)
+            - **Windows**: x64 (.exe)
+            - **Linux**: x64 / ARM64 (.AppImage / .deb)
+
+            ### 核心能力
+            - 多模型统一管理（DeepSeek / OpenAI / Anthropic / Gemini / 智谱 GLM 等 10+ 供应商）
+            - Agent 引擎 + 5 道工具门 + 9 步权限决策
+            - 内置工具：文件 / Shell / grep·glob / Web 搜索 / Todo
+            - MCP 集成 + Skill 可扩展系统
+            - 本地优先（SQLite 持久化，无云端上传，API Key 仅存本机）
+
+            > 自动更新通道（latest.json）已配置，启动 app 可检查更新。
           files: |
             artifacts/macos-x64/**/*.dmg
             artifacts/macos-x64/**/*.app.tar.gz
