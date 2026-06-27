@@ -11,7 +11,7 @@ on:
         description: '创建草稿 Release（手动确认发布）'
         required: false
         type: boolean
-        default: true
+        default: false
   repository_dispatch:
     types: [release]
 
@@ -404,7 +404,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: Gclm Agent ${{ steps.version.outputs.version }}
-          draft: ${{ github.event.inputs.draft != 'false' }}
+          draft: ${{ github.event.inputs.draft == 'true' }}
           prerelease: false
           generate_release_notes: true
           body: ${{ steps.body.outputs.body }}
