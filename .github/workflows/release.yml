@@ -362,6 +362,40 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "version_clean=${VERSION#v}" >> "$GITHUB_OUTPUT"
 
+      - name: Checkout source（for changelog）
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ env.SOURCE_REPO }}
+          ref: ${{ steps.version.outputs.version }}
+          token: ${{ secrets.PAT_REPO_ACCESS }}
+          fetch-depth: 0          # generate-changelog 需要 git log 历史 + tags
+
+      - name: Generate release body & update CHANGELOG
+        id: body
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # generate-changelog.sh: 基于 git log 生成段落 + 追加 CHANGELOG.md
+          {
+            echo "body<<CHANGELOG_EOF"
+            bash scripts/generate-changelog.sh "$VERSION"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Commit CHANGELOG.md back to source
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- CHANGELOG.md && ! git ls-files --others --exclude-standard -- CHANGELOG.md | grep -q .; then
+            echo "CHANGELOG 无变化（首版或已提交），跳过 push"
+          else
+            git add CHANGELOG.md
+            git commit -m "docs(changelog): 自动生成 $VERSION 发布记录 [skip ci]"
+            git push
+          fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
@@ -370,24 +404,7 @@ jobs:
           draft: ${{ github.event.inputs.draft != 'false' }}
           prerelease: false
           generate_release_notes: true
-          body: |
-            ## 首个测试版本（v0.0.1）
-
-            基于 Tauri 2 + Rust 的桌面 AI Agent 客户端。
-
-            ### 下载
-            - **macOS**: Apple Silicon / Intel (.dmg)
-            - **Windows**: x64 (.exe)
-            - **Linux**: x64 / ARM64 (.AppImage / .deb)
-
-            ### 核心能力
-            - 多模型统一管理（DeepSeek / OpenAI / Anthropic / Gemini / 智谱 GLM 等 10+ 供应商）
-            - Agent 引擎 + 5 道工具门 + 9 步权限决策
-            - 内置工具：文件 / Shell / grep·glob / Web 搜索 / Todo
-            - MCP 集成 + Skill 可扩展系统
-            - 本地优先（SQLite 持久化，无云端上传，API Key 仅存本机）
-
-            > 自动更新通道（latest.json）已配置，启动 app 可检查更新。
+          body: ${{ steps.body.outputs.body }}
           files: |
             artifacts/macos-x64/**/*.dmg
             artifacts/macos-x64/**/*.app.tar.gz
