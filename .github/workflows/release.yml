@@ -31,21 +31,12 @@ jobs:
     name: macOS x64
     runs-on: macos-latest
     steps:
-      - name: Generate GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           repository: ${{ env.SOURCE_REPO }}
           ref: ${{ github.event.inputs.version || github.event.client_payload.tag }}
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ secrets.PAT_REPO_ACCESS }}
           submodules: recursive
 
       - name: Install Rust
@@ -76,7 +67,7 @@ jobs:
       - name: Build macOS x64
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
@@ -91,28 +82,19 @@ jobs:
             desktop/src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
             desktop/src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.sig
 
-  # ────────────────────────────────────────────
+  # ───────────────────────────────────────────
   # macOS ARM (Apple Silicon)
   # ────────────────────────────────────────────
   build-macos-arm:
     name: macOS ARM
     runs-on: macos-latest
     steps:
-      - name: Generate GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           repository: ${{ env.SOURCE_REPO }}
           ref: ${{ github.event.inputs.version || github.event.client_payload.tag }}
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ secrets.PAT_REPO_ACCESS }}
           submodules: recursive
 
       - name: Install Rust
@@ -143,7 +125,7 @@ jobs:
       - name: Build macOS ARM
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
@@ -165,21 +147,12 @@ jobs:
     name: Windows x64
     runs-on: windows-latest
     steps:
-      - name: Generate GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           repository: ${{ env.SOURCE_REPO }}
           ref: ${{ github.event.inputs.version || github.event.client_payload.tag }}
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ secrets.PAT_REPO_ACCESS }}
           submodules: recursive
 
       - name: Install Rust
@@ -210,7 +183,7 @@ jobs:
       - name: Build Windows
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
