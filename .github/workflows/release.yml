@@ -32,7 +32,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ env.SOURCE_REPO }}
           ref: ${{ github.event.inputs.version || github.event.client_payload.tag }}
@@ -50,15 +50,15 @@ jobs:
           workspaces: './desktop/src-tauri -> target'
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10.33.0
           run_install: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: 'pnpm'
           cache-dependency-path: 'desktop/pnpm-lock.yaml'
 
@@ -76,7 +76,7 @@ jobs:
           args: '--target x86_64-apple-darwin'
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-x64
           path: |
@@ -135,7 +135,7 @@ jobs:
           args: '--target aarch64-apple-darwin'
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-arm
           path: |
@@ -193,7 +193,7 @@ jobs:
           projectPath: './desktop'
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows
           path: |
@@ -211,19 +211,19 @@ jobs:
       contents: write
     steps:
       - name: Download macOS x64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: macos-x64
           path: artifacts/macos-x64
 
       - name: Download macOS ARM artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: macos-arm
           path: artifacts/macos-arm
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: windows
           path: artifacts/windows
@@ -236,7 +236,7 @@ jobs:
           echo "version_clean=${VERSION#v}" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: Gclm Agent ${{ steps.version.outputs.version }}
@@ -286,7 +286,7 @@ jobs:
           EOF
 
       - name: Upload latest.json
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.version }}
           files: latest.json
