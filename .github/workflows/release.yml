@@ -505,10 +505,8 @@ jobs:
           }
           EOF
 
-      - name: Upload latest.json
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.version.outputs.version }}
-          files: latest.json
+      - name: Upload latest.json（gh CLI --clobber，重发同版本可覆盖）
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh release upload "$VERSION" latest.json --clobber -R ${{ github.repository }}
