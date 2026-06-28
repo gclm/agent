@@ -378,7 +378,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: ${{ env.SOURCE_REPO }}
-          ref: ${{ steps.version.outputs.version }}
+          ref: main
           token: ${{ secrets.PAT_REPO_ACCESS }}
           fetch-depth: 0          # generate-changelog 需要 git log 历史 + tags
           path: source            # checkout 到子目录，避免清空已 download 的 artifacts/
