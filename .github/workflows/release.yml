@@ -423,11 +423,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload release assets（find 递归，绕过 softprops glob 对子目录 .sig 匹配失败）
+      - name: Upload release assets（macOS updater 资产加架构后缀，避免 x64/arm 同名 422）
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
+          # Tauri macOS updater 产物固定命名 GclmAgent.app.tar.gz（不带架构），
+          # x64 与 arm 同名 → 上传第二个报 422 "ReleaseAsset.name already exists"。
+          # 上传前给 .app.tar.gz(+.sig) 加架构后缀；dmg 已带后缀无需处理。
+          # latest.json 用 find 动态取文件名，重命名后 url 自动带后缀，两端一致。
+          add_arch() {
+            local dir=$1 arch=$2 base="artifacts/$dir/macos"
+            [ -d "$base" ] || return 0
+            for f in "$base"/GclmAgent.app.tar.gz "$base"/GclmAgent.app.tar.gz.sig; do
+              [ -f "$f" ] || continue
+              mv "$f" "${f/GclmAgent.app/GclmAgent_$arch.app}"
+            done
+          }
+          add_arch macos-x64 x64
+          add_arch macos-arm aarch64
+
           mapfile -t assets < <(find artifacts -type f \( \
             -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \
             -o -name "*-setup.exe" -o -name "*.exe.sig" \
