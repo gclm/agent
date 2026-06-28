@@ -433,7 +433,8 @@ jobs:
           # 上传前给 .app.tar.gz(+.sig) 加架构后缀；dmg 已带后缀无需处理。
           # latest.json 用 find 动态取文件名，重命名后 url 自动带后缀，两端一致。
           add_arch() {
-            local dir=$1 arch=$2 base="artifacts/$dir/macos"
+            local dir=$1 arch=$2
+            local base="artifacts/$dir/macos"
             [ -d "$base" ] || return 0
             for f in "$base"/GclmAgent.app.tar.gz "$base"/GclmAgent.app.tar.gz.sig; do
               [ -f "$f" ] || continue
