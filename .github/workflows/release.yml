@@ -408,7 +408,7 @@ jobs:
           else
             git add CHANGELOG.md
             git commit -m "docs(changelog): 自动生成 $VERSION 发布记录 [skip ci]"
-            git push origin HEAD:main
+            git push origin HEAD:main 2>/dev/null || echo "CHANGELOG push 跳过（main 已前进），release 继续"
           fi
 
       - name: Create Release
