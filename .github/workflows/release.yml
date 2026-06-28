@@ -117,19 +117,23 @@ jobs:
           projectPath: './desktop'
           args: '--target x86_64-apple-darwin'
 
-      - name: Debug list bundle（确认 updater 资产产出）
+      - name: Debug list bundle（定位 updater 资产）
         run: |
-          echo "=== bundle/macos/ ==="
-          ls -la target/x86_64-apple-darwin/release/bundle/macos/ 2>/dev/null || echo "(macos/ 不存在)"
-          echo "=== bundle/dmg/ ==="
-          ls -la target/x86_64-apple-darwin/release/bundle/dmg/ 2>/dev/null
+          echo "PWD: $(pwd)"
+          echo "=== 找所有 updater/dmg 资产 ==="
+          find target -type f \( -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" -o -name "*.dmg" \) 2>/dev/null
+          echo "=== bundle/ 目录树 ==="
+          find target/x86_64-apple-darwin/release/bundle -maxdepth 2 2>/dev/null
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: macos-x64
           include-hidden-files: true
-          path: target/x86_64-apple-darwin/release/bundle/dmg/*.dmg,target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz,target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
+          path: |
+            target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+            target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz
+            target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
 
   # ───────────────────────────────────────────
   # macOS ARM (Apple Silicon)
@@ -186,7 +190,10 @@ jobs:
         with:
           name: macos-arm
           include-hidden-files: true
-          path: target/aarch64-apple-darwin/release/bundle/dmg/*.dmg,target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz,target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
+          path: |
+            target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz
+            target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
 
   # ────────────────────────────────────────────
   # Windows x64
@@ -242,7 +249,9 @@ jobs:
         with:
           name: windows
           include-hidden-files: true
-          path: target/release/bundle/nsis/*-setup.exe,target/release/bundle/nsis/*-setup.exe.sig
+          path: |
+            target/release/bundle/nsis/*-setup.exe
+            target/release/bundle/nsis/*-setup.exe.sig
 
   # ────────────────────────────────────────────
   # Linux x64 + ARM64 (deb + AppImage)
@@ -313,7 +322,10 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           include-hidden-files: true
-          path: target/release/bundle/deb/*.deb,target/release/bundle/appimage/*.AppImage,target/release/bundle/appimage/*.AppImage.sig
+          path: |
+            target/release/bundle/deb/*.deb
+            target/release/bundle/appimage/*.AppImage
+            target/release/bundle/appimage/*.AppImage.sig
 
   # ────────────────────────────────────────────
   # Create Release + latest.json
